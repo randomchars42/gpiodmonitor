@@ -21,11 +21,11 @@ setup(
     license='The Unlicense',
     url='',
     project_urls={
-        'Documentation': '',
+        'Documentation': 'https://github.com/randomchars42/gpiodmonitor',
         'Funding': '',
         'Say Thanks!': '',
-        'Source': '',
-        'Tracker': '',
+        'Source': 'https://github.com/randomchars42/gpiodmonitor',
+        'Tracker': 'https://github.com/randomchars42/gpiodmonitor/issues',
     },
     keywords='',
     classifiers=[
