@@ -19,11 +19,9 @@ setup(
     author='Eike Kühn',
     author_email='eike.kuehn@pixelwoelkchen.de',
     license='The Unlicense',
-    url='',
+    url='https://github.com/randomchars42/gpiodmonitor',
     project_urls={
         'Documentation': 'https://github.com/randomchars42/gpiodmonitor',
-        'Funding': '',
-        'Say Thanks!': '',
         'Source': 'https://github.com/randomchars42/gpiodmonitor',
         'Tracker': 'https://github.com/randomchars42/gpiodmonitor/issues',
     },
@@ -34,7 +32,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 4 - Production/Stable',
+        'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
