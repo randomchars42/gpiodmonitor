@@ -12,8 +12,8 @@ path = pathlib.Path(__file__).parent.resolve()
 
 setup(
     name='gpiodmonitor',
-    version='0.1.0',
-    description='Monitor for signal changes using gpiod.',
+    version='0.1.1',
+    description='Monitor signal changes using gpiod.',
     long_description = (path / 'README.md').read_text(encoding='utf-8'),
     long_description_content_type="text/markdown",
     author='Eike Kühn',
