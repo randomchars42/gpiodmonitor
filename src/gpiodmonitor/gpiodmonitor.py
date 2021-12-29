@@ -4,7 +4,6 @@
 # use the "new" way to interact with GPIO
 # https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git
 import gpiod
-import os
 import sys
 import time
 import logging
