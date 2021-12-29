@@ -163,7 +163,6 @@ class GPIODMonitor:
                     flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_UP|gpiod.LINE_REQ_FLAG_ACTIVE_LOW)
 
             vals = lines.get_values()
-            print(vals)
 
             try:
                 logger.debug('starting the loop')
