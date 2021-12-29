@@ -26,7 +26,8 @@ class GPIOPin:
     Holds:
      - the current state (this will only change after debouncing the signal)
      - the state of the countdown
-     - a list of callback to be called on a change to pressed / released
+     - a list of callback functions to be called on a change to pressed /
+       released
     """
     # save some space by using slots
     __slots__ =  ('id', 'state', 'countdown', 'on_pressed', 'on_released')
@@ -179,10 +180,10 @@ class GPIODMonitor:
                                 pin, state))
                             if state:
                                 for callback in self.__gpio_pins[pin].on_pressed:
-                                    callback(pin)
+                                    callback(pin, time.time())
                             else:
                                 for callback in self.__gpio_pins[pin].on_released:
-                                    callback(pin)
+                                    callback(pin, time.time())
             except KeyboardInterrupt:
                 sys.exit(130)
 
