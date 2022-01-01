@@ -30,62 +30,55 @@ class GPIOPin:
        released
     """
     # save some space by using slots
-    __slots__ =  ('id', 'state', 'countdown', 'on_pressed', 'on_released')
+    __slots__ =  ('id', 'state', 'countdown', 'on_pressed', 'on_released',
+            'on_long_pressed', 'countup', 'stack',
+            'press_interval, release_interval', 'check_interval',
+            'set_state', 'get_state', 'reset_countdown', 'tick')
 
-    def __init__(self, id):
+    def __init__(self, id, ):
         """Initialise the accessible variables.
         """
         self.id = id
         # key is initially assumed to be not pressed
-        self.state = False
+        self.__state = False
         # the countdown to accept a signal as "pressed"
         self.countdown = DEBOUNCE_PRESS_INTERVAL / DEBOUNCE_CHECK_INTERVAL
+        # the countup to accept a signal  as "long_pressed"
+        self.countup = 0
         self.on_pressed = []
         self.on_released = []
+        # list of tuples: (milliseconds, callback)
+        self.on_long_pressed = []
+        # working copy of on_long_pressed
+        self.stack = []
 
+    def set_state(self, state):
+        logger.debug('pin: {}, state: {}'.format(self.pin, state))
+        self.__state = state
+        if state:
+            # pressed
+            for callback in self.on_pressed:
+                callback(self.id, time.time())
+        else:
+            # released
+            for callback in self.on_released:
+                callback(self.id, time.time())
 
-class GPIODMonitor:
-    """Eventemitter using libgpiod and debouncing the raw signal.
+    def get_state(self):
+        return self.__state
 
-    For the debouncing algorithm see:
-    See: https://my.eng.utah.edu/~cs5780/debouncing.pdf
-    """
+    def reset_countdown(self):
+        if gpio_pin.state:
+            self.countdown = GPIOPin.release_interval
+        else:
+            self.countdown = GPIOPin.press_interval
 
-    def __init__(self, chip_number=0):
-        """Set default values.
-
-        Positional arguments:
-        chip_number -- the number of the gpio chip [int]; 0 if in doubt
-        """
-        logger.debug('creating monitor on chip {}'.format(chip_number))
-        self.__chip_number = chip_number
-        self.__gpio_pins = {}
-
-    def register(self, gpio_pin, on_pressed=None, on_released=None):
-        """Register a callback for an event on a gpio pin.
-
-        If you want to have multiple callbacks for one event call this function
-        as often as you like but don't hand it a list.
-
-        Positional arguments:
-        gpio_pin -- the BCM-number of the pin [int]
-        on_pressed -- callback function to call if the button was pressed
-        on_released -- callback function to call if the button was pressed
-        """
-        if not gpio_pin in self.__gpio_pins:
-            logger.debug('registering new pin {}'.format(gpio_pin))
-            self.__gpio_pins[gpio_pin] = GPIOPin(gpio_pin)
-        if on_pressed:
-            self.__gpio_pins[gpio_pin].on_pressed.append(on_pressed)
-        if on_released:
-            self.__gpio_pins[gpio_pin].on_released.append(on_released)
-
-    def _debounce(self, gpio_pin, raw_state):
+    def tick(self, raw_state):
         """Debounce a press / release.
 
         This function is called every DEBOUNCE_CHECK_INTERVAL milliseconds.
 
-        If a signal on a a `gpio_pin` differs from its known `gpio_pin.state`
+        If a signal on a `gpio_pin` differs from its known `gpio_pin.state`
         this function tries to determine if it's a real event or just noise:
         A countdown is started and with every check that holds the new state
         the count is decreased.
@@ -113,39 +106,115 @@ class GPIODMonitor:
         Adaption of: https://my.eng.utah.edu/~cs5780/debouncing.pdf
 
         Positional arguments:
-        gpio_pin -- the pin to debounce [GPIOPin]
         raw_state -- the state as read from the pin ("line") [bool]
-
-        Returns:
-        (has the state changed, its new state) -- tuple([bool,bool])
         """
-        key_changed = False
-
-        if raw_state == gpio_pin.state:
+        if raw_state == self.state:
             # state does not differ from the last accepted state
             # so reset the countdown
-            if gpio_pin.state:
-                gpio_pin.countdown = DEBOUNCE_RELEASE_INTERVAL / DEBOUNCE_CHECK_INTERVAL
-            else:
-                gpio_pin.countdown = DEBOUNCE_PRESS_INTERVAL / DEBOUNCE_CHECK_INTERVAL
-        else:
-            #logger.debug('detected change in state on pin {}'.format(
-            #    str(gpio_pin.id)))
-            # state is not the last accepted state
-            # so decrease the count
-            gpio_pin.countdown -= 1
+            self.reset_countdown()
+            # if the button is pressed
+            if self.state:
+                # count up
+                self.countup += GPIOPin.check_interval
 
-            if gpio_pin.countdown == 0:
+                to_pop = []
+                for i in range(len(self.stack)):
+                    if self.count_up >= self.stack[i][0]:
+                        # fire callback
+                        self.stack[i][1](self.id, time.time())
+                        # mark callback as used
+                        to_pop.push(i)
+                    else:
+                        # break loop
+                        # the list is sorted by the length
+                        # all following items will need an even larger countup
+                        break
+
+                # remove fired callbacks
+                for n in to_pop:
+                    self.stack.pop(n)
+
+        else:
+            # state is not the last accepted state
+            # so decrease the count by DEBOUNCE_CHECK_INTERVAL
+            self.countdown -= GPIOPin.check_interval
+
+            if self.countdown == 0:
                 # signal seems stable
                 # accept the new state
-                gpio_pin.state = raw_state
-                key_changed = True
+                self.set_state(raw_state)
                 # and prepare the countdown for the next change
-                if gpio_pin.state:
-                    gpio_pin.countdown = DEBOUNCE_RELEASE_INTERVAL / DEBOUNCE_CHECK_INTERVAL
-                else:
-                    gpio_pin.countdown = DEBOUNCE_PRESS_INTERVAL / DEBOUNCE_CHECK_INTERVAL
-        return (key_changed, gpio_pin.state)
+                self.reset_countdown()
+                # if the button has been pressed
+                if self.state:
+                    # create a working copy
+                    self.stack = self.on_long_pressed.copy()
+                    # and reset countup
+                    self.countup = 0
+
+class GPIODMonitor:
+    """Eventemitter using libgpiod and debouncing the raw signal.
+
+    For the debouncing algorithm see:
+    See: https://my.eng.utah.edu/~cs5780/debouncing.pdf
+    """
+
+    def __init__(self, chip_number=0,
+            check_interval=DEBOUNCE_CHECK_INTERVAL,
+            press_interval=DEBOUNCE_RELEASE_INTERVAL,
+            release_interval=DEBOUNCE_RELEASE_INTERVAL):
+        """Set default values.
+
+        Positional arguments:
+        chip_number -- the number of the gpio chip [int]; 0 if in doubt
+        """
+        logger.debug('creating monitor on chip {}'.format(chip_number))
+        self.__chip_number = chip_number
+        self.__gpio_pins = {}
+        self.check_interval = check_interval
+        GPIOPin.check_interval = check_interval
+        GPIOPin.press_interval = press_interval
+        GPIOPin.release_interval = release_interval
+
+    def register(self, gpio_pin, on_pressed=None, on_released=None):
+        """Register a callback for an event on a gpio pin.
+
+        If you want to have multiple callbacks for one event call this function
+        as often as you like but don't hand it a list.
+
+        Positional arguments:
+        gpio_pin -- the BCM-number of the pin [int]
+
+        Keyword arguments:
+        on_pressed -- callback function to call if the button was pressed
+        on_released -- callback function to call if the button was pressed
+        """
+        if not gpio_pin in self.__gpio_pins:
+            logger.debug('registering new pin {}'.format(gpio_pin))
+            self.__gpio_pins[gpio_pin] = GPIOPin(gpio_pin)
+        if on_pressed:
+            self.__gpio_pins[gpio_pin].on_pressed.append(on_pressed)
+        if on_released:
+            self.__gpio_pins[gpio_pin].on_released.append(on_released)
+
+    def register_long_pressed(self, gpio_pin, callback, seconds):
+        """Register a callback for an event on a gpio pin.
+
+        If you want to have multiple callbacks for one event call this function
+        as often as you like but don't hand it a list.
+
+        Positional arguments:
+        gpio_pin -- the BCM-number of the pin [int]
+        callback -- the function to call on long press [function]
+        seconds -- time the button needs to be pressed before callback is called
+        """
+        if not gpio_pin in self.__gpio_pins:
+            logger.debug('registering new pin {}'.format(gpio_pin))
+            self.__gpio_pins[gpio_pin] = GPIOPin(gpio_pin)
+        self.__gpio_pins[gpio_pin].on_long_pressed.append(seconds * 1000,
+                callback)
+        # sort callbacks by the time the button needs to be pressed
+        self.__gpio_pins[gpio_pin].on_long_pressed.sort(key=lambda x: x[0])
 
     def run(self):
         """Monitor all registered pins ("lines") for a change in state.
@@ -156,7 +225,8 @@ class GPIODMonitor:
 
             lines = chip.get_lines(self.__gpio_pins.keys())
             for i in self.__gpio_pins.keys():
-                logger.debug('requesting line: {}'.format(self.__chip.get_line(i).offset()))
+                logger.debug('requesting line: {}'.format(
+                    self.__chip.get_line(i).offset()))
                 self.__chip.get_line(i).release()
                 self.__chip.get_line(i).request(consumer="GPIODMonitor.py",
                     type=gpiod.LINE_REQ_DIR_IN,
@@ -169,21 +239,25 @@ class GPIODMonitor:
                 while True:
                     # check according to interval
                     time.sleep(DEBOUNCE_CHECK_INTERVAL / 1000)
+
                     for i in self.__gpio_pins.keys():
                         pin = self.__chip.get_line(i).offset()
+
+                        self.__gpio_pins[pin].tick(
+                                self.__chip.get_line(i).get_value())
                         # let _debounce decide whether the pin / line has a
                         # new state
-                        changed, state = self._debounce(self.__gpio_pins[pin],
-                                self.__chip.get_line(i).get_value())
-                        if changed:
-                            logger.debug('pin: {}, state: {}'.format(
-                                pin, state))
-                            if state:
-                                for callback in self.__gpio_pins[pin].on_pressed:
-                                    callback(pin, time.time())
-                            else:
-                                for callback in self.__gpio_pins[pin].on_released:
-                                    callback(pin, time.time())
+                        #changed, state = self._debounce(self.__gpio_pins[pin],
+                        #        self.__chip.get_line(i).get_value())
+                        #if changed:
+                        #    logger.debug('pin: {}, state: {}'.format(
+                        #        pin, state))
+                        #    if state:
+                        #        for callback in self.__gpio_pins[pin].on_pressed:
+                        #            callback(pin, time.time())
+                        #    else:
+                        #        for callback in self.__gpio_pins[pin].on_released:
+                        #            callback(pin, time.time())
             except KeyboardInterrupt:
                 sys.exit(130)
 
