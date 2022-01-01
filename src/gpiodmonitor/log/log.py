@@ -33,7 +33,7 @@ config = {
             'propagate': False,
             'level': 'DEBUG',
         },
-        'icstool': {
+        'gpiodmonitor': {
             'handlers': ['console'],
             'propagate': False,
             'level': 'DEBUG',
