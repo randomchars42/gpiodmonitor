@@ -32,17 +32,17 @@ class GPIOPin:
     # save some space by using slots
     __slots__ =  ('id', 'state', 'countdown', 'on_pressed', 'on_released',
             'on_long_pressed', 'countup', 'stack',
-            'press_interval, release_interval', 'check_interval',
-            'set_state', 'get_state', 'reset_countdown', 'tick')
+            'press_interval, release_interval', 'check_interval')
+            #'set_state', 'get_state', 'reset_countdown', 'tick')
 
     def __init__(self, id, ):
         """Initialise the accessible variables.
         """
         self.id = id
         # key is initially assumed to be not pressed
-        self.__state = False
+        self.state = False
         # the countdown to accept a signal as "pressed"
-        self.countdown = DEBOUNCE_PRESS_INTERVAL / DEBOUNCE_CHECK_INTERVAL
+        self.countdown = GPIOPin.press_interval
         # the countup to accept a signal  as "long_pressed"
         self.countup = 0
         self.on_pressed = []
@@ -53,8 +53,8 @@ class GPIOPin:
         self.stack = []
 
     def set_state(self, state):
-        logger.debug('pin: {}, state: {}'.format(self.pin, state))
-        self.__state = state
+        logger.debug('pin: {}, state: {}'.format(self.id, state))
+        self.state = state
         if state:
             # pressed
             for callback in self.on_pressed:
@@ -65,10 +65,10 @@ class GPIOPin:
                 callback(self.id, time.time())
 
     def get_state(self):
-        return self.__state
+        return self.state
 
     def reset_countdown(self):
-        if gpio_pin.state:
+        if self.state:
             self.countdown = GPIOPin.release_interval
         else:
             self.countdown = GPIOPin.press_interval
@@ -292,6 +292,9 @@ if __name__ == '__main__':
     monitor = GPIODMonitor(args.chip)
     for pin in args.pins:
         monitor.register(int(pin),
-                lambda used_pin: print("{}: 1".format(used_pin)),
-                lambda used_pin: print("{}: 0".format(used_pin)))
+                lambda used_pin, time: print("{}: 1".format(used_pin)),
+                lambda used_pin, time: print("{}: 0".format(used_pin)))
+        monitor.register_long_press(int(pin),
+                lambda used_pin, time: print("{}: 1 long".format(used_pin)),
+                3)
     monitor.run()
