@@ -195,7 +195,7 @@ class GPIODMonitor:
         if on_released:
             self.__gpio_pins[gpio_pin].on_released.append(on_released)
 
-    def register_long_pressed(self, gpio_pin, callback, seconds):
+    def register_long_press(self, gpio_pin, callback, seconds):
         """Register a callback for an event on a gpio pin.
 
         If you want to have multiple callbacks for one event call this function
@@ -243,19 +243,6 @@ class GPIODMonitor:
 
                         self.__gpio_pins[pin].tick(
                                 self.__chip.get_line(i).get_value())
-                        # let _debounce decide whether the pin / line has a
-                        # new state
-                        #changed, state = self._debounce(self.__gpio_pins[pin],
-                        #        self.__chip.get_line(i).get_value())
-                        #if changed:
-                        #    logger.debug('pin: {}, state: {}'.format(
-                        #        pin, state))
-                        #    if state:
-                        #        for callback in self.__gpio_pins[pin].on_pressed:
-                        #            callback(pin, time.time())
-                        #    else:
-                        #        for callback in self.__gpio_pins[pin].on_released:
-                        #            callback(pin, time.time())
             except KeyboardInterrupt:
                 sys.exit(130)
 
