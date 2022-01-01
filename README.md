@@ -6,19 +6,19 @@ Tiny wrapper around gpiod used to monitor and debounce button presses.
 
 You can isntall the package from `pip`:
 
-```
+```bash
 pip install gpiodmonitor
 ```
 
 Needs libgpiod2 installed. Under Ubuntu / Debian you can it install using:
 
-```
+```bash
 sudo apt install libgpiod2 python3-gpiod
 ```
 
 ## Usage:
 
-```
+```python3
 import gpiodmonitor
 
 # set the chipnumber of your GPIO board (0 on the Raspberry Pi)
