@@ -31,9 +31,7 @@ class GPIOPin:
     """
     # save some space by using slots
     __slots__ =  ('id', 'state', 'countdown', 'on_pressed', 'on_released',
-            'on_long_pressed', 'countup', 'stack',
-            'press_interval, release_interval', 'check_interval')
-            #'set_state', 'get_state', 'reset_countdown', 'tick')
+            'on_long_pressed', 'countup', 'stack')
 
     def __init__(self, id, ):
         """Initialise the accessible variables.
@@ -119,11 +117,11 @@ class GPIOPin:
 
                 to_pop = []
                 for i in range(len(self.stack)):
-                    if self.count_up >= self.stack[i][0]:
+                    if self.countup >= self.stack[i][0]:
                         # fire callback
                         self.stack[i][1](self.id, time.time())
                         # mark callback as used
-                        to_pop.push(i)
+                        to_pop.append(i)
                     else:
                         # break loop
                         # the list is sorted by the length
@@ -211,8 +209,8 @@ class GPIODMonitor:
         if not gpio_pin in self.__gpio_pins:
             logger.debug('registering new pin {}'.format(gpio_pin))
             self.__gpio_pins[gpio_pin] = GPIOPin(gpio_pin)
-        self.__gpio_pins[gpio_pin].on_long_pressed.append(seconds * 1000,
-                callback)
+        self.__gpio_pins[gpio_pin].on_long_pressed.append((seconds * 1000,
+                callback))
         # sort callbacks by the time the button needs to be pressed
         self.__gpio_pins[gpio_pin].on_long_pressed.sort(key=lambda x: x[0])
 
