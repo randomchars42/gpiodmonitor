@@ -236,13 +236,10 @@ class GPIODMonitor:
                 logger.debug('starting the loop')
                 while True:
                     # check according to interval
-                    time.sleep(DEBOUNCE_CHECK_INTERVAL / 1000)
-
-                    for i in self.__gpio_pins.keys():
-                        pin = self.__chip.get_line(i).offset()
-
+                    time.sleep(self.check_interval / 1000)
+                    for pin in self.__gpio_pins.keys():
                         self.__gpio_pins[pin].tick(
-                                self.__chip.get_line(i).get_value())
+                                self.__chip.get_line(pin).get_value())
             except KeyboardInterrupt:
                 sys.exit(130)
 
