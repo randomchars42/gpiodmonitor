@@ -12,7 +12,7 @@ path = pathlib.Path(__file__).parent.resolve()
 
 setup(
     name='gpiodmonitor',
-    version='0.2.0',
+    version='1.0.0',
     description='Monitor signal changes using gpiod.',
     long_description = (path / 'README.md').read_text(encoding='utf-8'),
     long_description_content_type="text/markdown",
@@ -55,7 +55,7 @@ setup(
     #package_data={  # Optional
     #    'gpiodmonitor': ['FILE'],
     #}
-    python_requires='>=3.6, < 4',
+    python_requires='>=3.7, < 4',
     setup_requires=[
         'docutils>=0.3',
         'wheel',
