@@ -215,7 +215,7 @@ class GPIODMonitor:
         _chip_number: The number of the chip with the pins.
         _chip: The gpiod.Chip.
         _pins: The pins by their number.
-        _check_interval: The interval with which to check the pins'
+        check_interval: The interval with which to check the pins'
             state in milliseconds.
     """
 
@@ -240,7 +240,7 @@ class GPIODMonitor:
         self._chip_number = chip_number
         self._chip: Optional[gpiod.Chip] = None
         self._pins: Dict[int, GPIOPin] = {}
-        self._check_interval: int = check_interval
+        self.check_interval: int = check_interval
         GPIOPin.check_interval = check_interval
         GPIOPin.active_interval = active_interval
         GPIOPin.inactive_interval = inactive_interval
@@ -352,7 +352,7 @@ class GPIODMonitor:
                 logger.debug('starting the loop')
                 while True:
                     # check according to interval
-                    time.sleep(self._check_interval / 1000)
+                    time.sleep(self.check_interval / 1000)
                     self.tick()
             except KeyboardInterrupt:
                 sys.exit(130)
@@ -408,7 +408,7 @@ if __name__ == '__main__':
     with monitor.open_chip() as gpio_chip:
         while True:
             # check according to interval
-            time.sleep(gpio_chip.check_interval / 1000)
-            gpio_chip.tick()
+            time.sleep(monitor.check_interval / 1000)
+            monitor.tick()
         # or use:
         # chip.monitor()
