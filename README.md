@@ -21,24 +21,39 @@ sudo apt install libgpiod2 python3-gpiod
 ```python3
 import gpiodmonitor
 
-# set the chipnumber of your GPIO board (0 on the Raspberry Pi)
+def dummy_active(pin: int):
+    """Dummy function."""
+    print(f'{pin} is active')
+
+def dummy_inactive(pin: int):
+    """Dummy function."""
+    print(f'{pin} is inactive')
+
+def dummy_long_active(pin: int):
+    """Dummy function."""
+    print(f'{pin} has been active for a long time')
+
 monitor = GPIODMonitor(0)
 
-for pin in [17,23]:
-    # register some lambda to be called on activity on pins 17 and 23
-    monitor.register(pin,
-            on_pressed=lambda used_pin, time: print("{}: pressed".format(
-                used_pin)),
-            on_released=lambda used_pin, time: print("{}: released".format(
-                used_pin)))
+for gpio_pin in [12,13]:
+    # register some functions to be called on activity on pins 12 and 13
+    monitor.register(int(gpio_pin),
+                     on_active=dummy_active,
+                     on_inactive=dummy_inactive)
+    # register a function to be called when the button is pressed for 3 seconds
+    # duration=3
+    monitor.register_long_active(int(gpio_pin),
+                                 callback=dummy_long_active,
+                                 seconds=3)
 
-    # register a lambda to be called when the button is pressed for 3 seconds
-    duration=3
-    monitor.register_long_press(pin,
-            lambda used_pin, time: print("{}: pressed for {} secondes".format(
-                used_pin,duration)),
-            duration)
-
-# will run infinitely
-monitor.run()
+with monitor.open_chip() as gpio_chip:
+    try:
+        while True:
+            # check according to interval
+            time.sleep(monitor.check_interval / 1000)
+            monitor.tick()
+    except KeyboardInterrupt:
+        sys.exit(130)
+    # or use (equivalent but you don't have controll over the loop):
+    # chip.monitor()
 ```
