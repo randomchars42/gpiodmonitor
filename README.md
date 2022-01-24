@@ -10,7 +10,7 @@ You can isntall the package from `pip`:
 pip install gpiodmonitor
 ```
 
-Needs libgpiod2 installed. Under Ubuntu / Debian you can it install using:
+Needs libgpiod2 installed. Under Ubuntu / Debian you can install it using:
 
 ```bash
 sudo apt install libgpiod2 python3-gpiod
