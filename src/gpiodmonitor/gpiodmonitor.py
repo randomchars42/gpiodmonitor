@@ -325,8 +325,8 @@ class GPIODMonitor:
             self._chip.get_line(i).request(
                 consumer="GPIODMonitor",
                 type=gpiod.LINE_REQ_DIR_IN,
-                flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_UP)
-            #flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_UP | gpiod.LINE_REQ_FLAG_ACTIVE_LOW)
+                flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_UP
+                | gpiod.LINE_REQ_FLAG_ACTIVE_LOW)
         yield self._chip
         self._chip.close()
         self._chip = None
@@ -406,9 +406,12 @@ if __name__ == '__main__':
                                      seconds=3)
 
     with monitor.open_chip() as gpio_chip:
-        while True:
-            # check according to interval
-            time.sleep(monitor.check_interval / 1000)
-            monitor.tick()
-        # or use:
+        try:
+            while True:
+                # check according to interval
+                time.sleep(monitor.check_interval / 1000)
+                monitor.tick()
+        except KeyboardInterrupt:
+            sys.exit(130)
+        # or use (equivalent but you don't have controll over the loop):
         # chip.monitor()
