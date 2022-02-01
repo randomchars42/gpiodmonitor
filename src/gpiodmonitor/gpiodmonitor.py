@@ -2,7 +2,7 @@
 """
 Monitor GPIO pins ("lines") using the "new" way (libgpiod).
 
-Thus it depends on python3-gpiod beeing installed:
+Thus it depends on python3-gpiod being installed:
 https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git
 """
 
@@ -27,6 +27,10 @@ DEBOUNCE_CHECK_INTERVAL: int = 5
 DEBOUNCE_ACTIVE_INTERVAL: int = 10
 # how long has a change to "inactive" to be stable [ms]
 DEBOUNCE_INACTIVE_INTERVAL: int = 100
+# while recieving a stable "active" signal send `on_active` in regular intervals
+ACTIVE_PULSES = False
+# interval for pulses [ms]
+ACTIVE_PULSE_INTERVAL: int = 500
 
 
 class GPIOPin:
@@ -62,6 +66,8 @@ class GPIOPin:
     active_interval: int = DEBOUNCE_ACTIVE_INTERVAL
     inactive_interval: int = DEBOUNCE_INACTIVE_INTERVAL
     check_interval: int = DEBOUNCE_CHECK_INTERVAL
+    active_pulses: bool = ACTIVE_PULSES
+    active_pulse_interval: int = ACTIVE_PULSE_INTERVAL
 
     def __init__(self, num: int) -> None:
         """Initialise the accessible variables.
@@ -186,6 +192,13 @@ class GPIOPin:
                 for i in to_pop:
                     self._stack.pop(i)
 
+                # if we are on multiples of `active_pulse_interval`
+                if (self.active_pulses
+                        and self._countup % self.active_pulse_interval):
+                    # send a pulse
+                    for callback in self.on_active:
+                        callback(self._num)
+
         else:
             # state is not the last accepted state
             # so decrease the count by DEBOUNCE_CHECK_INTERVAL
@@ -220,10 +233,13 @@ class GPIODMonitor:
     """
 
     def __init__(self,
-                 chip_number=0,
-                 check_interval=DEBOUNCE_CHECK_INTERVAL,
-                 active_interval=DEBOUNCE_ACTIVE_INTERVAL,
-                 inactive_interval=DEBOUNCE_INACTIVE_INTERVAL):
+                 chip_number: int = 0,
+                 check_interval: int = DEBOUNCE_CHECK_INTERVAL,
+                 active_interval: int = DEBOUNCE_ACTIVE_INTERVAL,
+                 inactive_interval: int = DEBOUNCE_INACTIVE_INTERVAL,
+                 active_pulses: bool = ACTIVE_PULSES,
+                 active_pulse_interval: int = ACTIVE_PULSE_INTERVAL):
+        # pylint: disable=too-many-arguments
         """Set default values.
 
         Arguments:
@@ -235,6 +251,9 @@ class GPIODMonitor:
             inactive_interval: The interval it takes for a stable
                 inactive signal to trigger a change in state in
                 milliseconds.
+            active_pulses: While recieving a stable "active" signal
+                send `on_active` in regular intervals.
+            active_pulse_interval: Interval for pulses in milliseconds.
         """
         logger.debug('creating monitor on chip %s', chip_number)
         self._chip_number = chip_number
@@ -244,6 +263,8 @@ class GPIODMonitor:
         GPIOPin.check_interval = check_interval
         GPIOPin.active_interval = active_interval
         GPIOPin.inactive_interval = inactive_interval
+        GPIOPin.active_pulses = active_pulses
+        GPIOPin.active_pulse_interval = active_pulse_interval
 
     def get_pins(self) -> Dict[int, GPIOPin]:
         """Return the pins.

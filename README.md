@@ -2,6 +2,13 @@
 
 Tiny wrapper around gpiod used to monitor and debounce button presses.
 
+Callbacks are triggered on these events:
+
+* on change to active signal (e.g., button pressed)
+* on change to inactive signal (e.g., button released)
+* after the active signal has been stable for a certain period of time (e.g., button held down)
+* in regular interval while an "active" signal is recieved
+
 ## Installation
 
 You can isntall the package from `pip`:
@@ -33,7 +40,7 @@ def dummy_long_active(pin: int):
     """Dummy function."""
     print(f'{pin} has been active for a long time')
 
-monitor = GPIODMonitor(0)
+monitor = GPIODMonitor(chip=0)
 
 for gpio_pin in [12,13]:
     # register some functions to be called on activity on pins 12 and 13
