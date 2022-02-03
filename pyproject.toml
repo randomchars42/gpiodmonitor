@@ -1,3 +1,47 @@
-# pyproject.toml
+[project]
+name = 'gpiodmonitor'
+version = '1.1.1'
+description = ''
+readme = 'README.md'
+requires-python = '>=3.7'
+license = 'The Unlicense'
+authors = [
+{name = 'Eike Christian Kühn', email = 'eike.kuehn@pixelwoelkchen.de'},
+]
+maintainers = [
+{name = 'Eike Christian Kühn', email = 'eike.kuehn@pixelwoelkchen.de'},
+]
+classifiers = [
+    'License :: OSI Approved :: The Unlicense (Unlicense)',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3 :: Only',
+    'Development Status :: 5 - Production/Stable',
+    'Programming Language :: Python'
+]
+dependencies = []
+
+[project.urls]
+homepage = 'https://github.com/randomchars42/gpiodmonitor'
+documentation = 'https://github.com/randomchars42/gpiodmonitor'
+source = 'https://github.com/randomchars42/gpiodmonitor'
+tracker = 'https://github.com/randomchars42/gpiodmonitor/issues'
+
+[project.scripts]
+gpiodmonitor = 'gpiodmonitor.gpiodmonitor:main'
+
 [build-system]
-requires = ["setuptools>=30.3.0", "wheel", "setuptools_scm"]
+requires = [
+    'docutils>=0.3',
+    'wheel',
+    'setuptools',
+]
+build-backend = 'setuptools.build_meta'
+
+[tool.mypy]
+# add .venv to the mypy path to detect imported packages install by
+# pipenv
+mypy_path = '$MYPY_CONFIG_FILE_DIR/.venv/lib/python3.7/site-packages/'

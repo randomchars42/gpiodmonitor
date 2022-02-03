@@ -381,10 +381,6 @@ class GPIODMonitor:
 
 
 if __name__ == '__main__':
-    """Run the application.
-
-    Configure logging and read parameters.
-    """
     import argparse
 
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
