@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+
+[dev-packages]
+docutils = "~=0.18.1"
+wheel = "~=0.37.1"
+setuptools = "~=60.6.0"
+build = "~=0.7.0"
+
+[requires]
+python_version = "3.7"
