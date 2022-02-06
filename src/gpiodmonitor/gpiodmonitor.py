@@ -422,7 +422,7 @@ if __name__ == '__main__':
                                      callback=dummy_long_active,
                                      seconds=3)
 
-    with monitor.open_chip() as gpio_chip:
+    with monitor.open_chip():
         try:
             while True:
                 # check according to interval

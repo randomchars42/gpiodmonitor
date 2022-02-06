@@ -53,7 +53,7 @@ for gpio_pin in [12,13]:
                                  callback=dummy_long_active,
                                  seconds=3)
 
-with monitor.open_chip() as gpio_chip:
+with monitor.open_chip():
     try:
         while True:
             # check according to interval
