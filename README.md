@@ -40,7 +40,7 @@ def dummy_long_active(pin: int):
     """Dummy function."""
     print(f'{pin} has been active for a long time')
 
-monitor = GPIODMonitor(chip=0)
+monitor = gpiodmonitor.GPIODMonitor(chip=0)
 
 for gpio_pin in [12,13]:
     # register some functions to be called on activity on pins 12 and 13
