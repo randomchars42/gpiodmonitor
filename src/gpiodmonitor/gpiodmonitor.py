@@ -194,7 +194,7 @@ class GPIOPin:
 
                 # if we are on multiples of `active_pulse_interval`
                 if (self.active_pulses
-                        and self._countup % self.active_pulse_interval):
+                        and self._countup % self.active_pulse_interval == 0):
                     # send a pulse
                     for callback in self.on_active:
                         callback(self._num)
