@@ -26,7 +26,7 @@ sudo apt install libgpiod2 python3-gpiod
 ## Usage:
 
 ```python3
-import gpiodmonitor
+from gpiodmonitor import gpiodmonitor
 
 def dummy_active(pin: int):
     """Dummy function."""
