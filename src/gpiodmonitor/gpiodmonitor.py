@@ -432,6 +432,8 @@ if __name__ == '__main__':
         monitor.register(int(gpio_pin),
                          on_active=dummy_active,
                          on_inactive=dummy_inactive)
+        monitor.set_active_pulses_interval(int(gpio_pin),
+                                           300)
         monitor.register_long_active(int(gpio_pin),
                                      callback=dummy_long_active,
                                      seconds=3)
