@@ -27,10 +27,6 @@ DEBOUNCE_CHECK_INTERVAL: int = 5
 DEBOUNCE_ACTIVE_INTERVAL: int = 10
 # how long has a change to "inactive" to be stable [ms]
 DEBOUNCE_INACTIVE_INTERVAL: int = 100
-# while recieving a stable "active" signal send `on_active` in regular intervals
-ACTIVE_PULSES = False
-# interval for pulses [ms]
-ACTIVE_PULSE_INTERVAL: int = 500
 
 
 class GPIOPin:
@@ -54,20 +50,22 @@ class GPIOPin:
             This is used to trigger callbacks in `on_long_active`.
         on_active: Functions to call on state change to active.
         on_inactive: Functions to call on state change to inactive.
-        _on_long_active: Functions to call if the state has been
+        on_long_active: Functions to call if the state has been
             active for X ms.
+        active_pulses_interval: Fire `on_active` in regular intervals
+            of X ms while receiving a stable "active" signal. Set to `0`
+            to turn off this behaviour.
         _stack: A working copy of `on_long_active` where all called
             callbacks are popped off.
     """
     # save some space by using slots
     __slots__ = ('_num', '_active', '_countdown', '_countup', 'on_active',
-                 'on_inactive', 'on_long_active', '_stack')
+                 'on_inactive', 'on_long_active', 'active_pulses_interval',
+                 '_stack')
 
     active_interval: int = DEBOUNCE_ACTIVE_INTERVAL
     inactive_interval: int = DEBOUNCE_INACTIVE_INTERVAL
     check_interval: int = DEBOUNCE_CHECK_INTERVAL
-    active_pulses: bool = ACTIVE_PULSES
-    active_pulse_interval: int = ACTIVE_PULSE_INTERVAL
 
     def __init__(self, num: int) -> None:
         """Initialise the accessible variables.
@@ -87,6 +85,10 @@ class GPIOPin:
         self.on_inactive: List[Callable[[int], None]] = []
         # list of tuples: (milliseconds, callback)
         self.on_long_active: List[Tuple[int, Callable[[int], None]]] = []
+        # disable repetitively firing `on_active` by default
+        # a value `> 0` will be interpreted as a countup  to fire
+        # `on_active` while receiving an "active" signal
+        self.active_pulses_interval: int = 0
         # working copy of on_long_active
         self._stack: List[Tuple[int, Callable[[int], None]]] = []
 
@@ -179,22 +181,26 @@ class GPIOPin:
                     if self._countup >= fire_after:
                         # fire callback
                         callback(self._num)
-                        # remove it from the list of available callbacks
+                        # mark to remove the callback-tuple from the
+                        # list of available callbacks
+                        # do not do so now as the stack / loop would get
+                        # mixed up
                         to_pop.append(i)
                     else:
                         # break loop
-                        # the list is sorted by the length
-                        # all following items will need an even larger value of
-                        # countup
+                        # the list is sorted by the length needed for
+                        # the signal to be active
+                        # all following items will need an even larger
+                        # value of `_countup`
                         break
 
                 # remove fired callbacks
                 for i in to_pop:
                     self._stack.pop(i)
 
-                # if we are on multiples of `active_pulse_interval`
-                if (self.active_pulses
-                        and self._countup % self.active_pulse_interval == 0):
+                # if we are on multiples of `active_pulses_interval`
+                if (self.active_pulses_interval
+                        and self._countup % self.active_pulses_interval == 0):
                     # send a pulse
                     for callback in self.on_active:
                         callback(self._num)
@@ -236,9 +242,7 @@ class GPIODMonitor:
                  chip_number: int = 0,
                  check_interval: int = DEBOUNCE_CHECK_INTERVAL,
                  active_interval: int = DEBOUNCE_ACTIVE_INTERVAL,
-                 inactive_interval: int = DEBOUNCE_INACTIVE_INTERVAL,
-                 active_pulses: bool = ACTIVE_PULSES,
-                 active_pulse_interval: int = ACTIVE_PULSE_INTERVAL):
+                 inactive_interval: int = DEBOUNCE_INACTIVE_INTERVAL):
         # pylint: disable=too-many-arguments
         """Set default values.
 
@@ -251,9 +255,6 @@ class GPIODMonitor:
             inactive_interval: The interval it takes for a stable
                 inactive signal to trigger a change in state in
                 milliseconds.
-            active_pulses: While recieving a stable "active" signal
-                send `on_active` in regular intervals.
-            active_pulse_interval: Interval for pulses in milliseconds.
         """
         logger.debug('creating monitor on chip %s', chip_number)
         self._chip_number = chip_number
@@ -263,8 +264,6 @@ class GPIODMonitor:
         GPIOPin.check_interval = check_interval
         GPIOPin.active_interval = active_interval
         GPIOPin.inactive_interval = inactive_interval
-        GPIOPin.active_pulses = active_pulses
-        GPIOPin.active_pulse_interval = active_pulse_interval
 
     def get_pins(self) -> Dict[int, GPIOPin]:
         """Return the pins.
@@ -287,8 +286,23 @@ class GPIODMonitor:
             raise IOError('Chip not opened.')
         return bool(self._chip.get_line(pin).get_value())
 
+    def set_active_pulses_interval(self, pin: int,
+                                   active_pulses_interval: int) -> None:
+        """Set the interval to fire active pulses for a given pin.
+
+        Arguments:
+            pin: The BCM-number of the pin.
+            active_pulses_interval: Fire `on_active` in regular
+                intervals of X ms while receiving a stable "active"
+                signal. Set to `0` to turn off this behaviour.
+        """
+        if not pin in self._pins:
+            logger.debug('registering new pin %s', pin)
+            self._pins[pin] = GPIOPin(pin)
+        self._pins[pin].active_pulses_interval = active_pulses_interval
+
     def register(self,
-                 pin,
+                 pin: int,
                  on_active: Optional[Callable[[int], None]] = None,
                  on_inactive: Optional[Callable[[int], None]] = None) -> None:
         """Register a callback for a stable signal change on a pin.
@@ -418,6 +432,8 @@ if __name__ == '__main__':
         monitor.register(int(gpio_pin),
                          on_active=dummy_active,
                          on_inactive=dummy_inactive)
+        monitor.set_active_pulses_interval(int(gpio_pin),
+                                           300)
         monitor.register_long_active(int(gpio_pin),
                                      callback=dummy_long_active,
                                      seconds=3)

@@ -47,7 +47,12 @@ for gpio_pin in [12,13]:
     monitor.register(int(gpio_pin),
                      on_active=dummy_active,
                      on_inactive=dummy_inactive)
-    # register a function to be called when the button is pressed for 3 seconds
+    # set the interval in milliseconds after which `on_active` is fired
+    # repetitively while the signal on the pin is active
+    # set to 0 to turn off repetitive firing of `on_active`
+    monitor.set_active_pulses_interval(gpio_pin, 300)
+    # register a function to be called when the button is pressed for 3
+    # seconds
     # duration=3
     monitor.register_long_active(int(gpio_pin),
                                  callback=dummy_long_active,
