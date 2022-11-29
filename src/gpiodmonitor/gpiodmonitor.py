@@ -54,7 +54,7 @@ class GPIOPin:
             This is used to trigger callbacks in `on_long_active`.
         on_active: Functions to call on state change to active.
         on_inactive: Functions to call on state change to inactive.
-        _on_long_active: Functions to call if the state has been
+        on_long_active: Functions to call if the state has been
             active for X ms.
         _stack: A working copy of `on_long_active` where all called
             callbacks are popped off.
