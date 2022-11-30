@@ -36,6 +36,10 @@ def dummy_inactive(pin: int):
     """Dummy function."""
     print(f'{pin} is inactive')
 
+def dummy_pulsed_active(pin: int):
+    """Dummy function."""
+    print(f'{pin} is still active')
+
 def dummy_long_active(pin: int):
     """Dummy function."""
     print(f'{pin} has been active for a long time')
@@ -47,13 +51,13 @@ for gpio_pin in [12,13]:
     monitor.register(int(gpio_pin),
                      on_active=dummy_active,
                      on_inactive=dummy_inactive)
-    # set the interval in milliseconds after which `on_active` is fired
-    # repetitively while the signal on the pin is active
-    # set to 0 to turn off repetitive firing of `on_active`
-    monitor.set_active_pulses_interval(gpio_pin, 300)
+    # register function that will be called every 300 ms as long as the
+    # pin is active
+    monitor.register_pulsed_active(int(gpio_pin),
+                                 callback=dummy_pulsed_active,
+                                 seconds=0.3)
     # register a function to be called when the button is pressed for 3
     # seconds
-    # duration=3
     monitor.register_long_active(int(gpio_pin),
                                  callback=dummy_long_active,
                                  seconds=3)
