@@ -35,8 +35,6 @@ class TimedCallback:
     """Holds a modifieable time in ms and a callback."""
     callback: Callable[[int], None]
     time: int = 0
-    interval: int = 0
-
 
 class GPIOPin:
     # pylint: disable=too-many-instance-attributes
@@ -63,13 +61,15 @@ class GPIOPin:
             "active" for X ms.
         on_pulsed_active: Functions to call repetitively in intervals of
             X ms if the state stays "active".
-        _stack: A working copy of `on_long_active` where all called
+        _stack_long: A working copy of `on_long_active` where all called
             callbacks are popped off.
+        _stack_pulsed: A working copy of `on_pulsed_active` where times
+            are changed.
     """
     # save some space by using slots
     __slots__ = ('_num', '_active', '_countdown', '_countup', 'on_active',
                  'on_inactive', 'on_long_active', 'on_pulsed_active',
-                 '_stack')
+                 '_stack_long', '_stack_pulsed')
 
     active_interval: int = DEBOUNCE_ACTIVE_INTERVAL
     inactive_interval: int = DEBOUNCE_INACTIVE_INTERVAL
@@ -97,8 +97,9 @@ class GPIOPin:
         # list of callback functions that should be fired certain
         # intervals
         self.on_pulsed_active: List[TimedCallback] = []
-        # working copy of on_long_active
-        self._stack: List[TimedCallback] = []
+        # working copies
+        self._stack_long: List[TimedCallback] = []
+        self._stack_pulsed: List[TimedCallback] = []
 
     def set_state(self, active: bool) -> None:
         """This function is called once the signal has stably changed.
@@ -186,7 +187,7 @@ class GPIOPin:
                 self._countup += GPIOPin.check_interval
 
                 to_pop: List = []
-                for i, timed_callback in enumerate(self._stack):
+                for i, timed_callback in enumerate(self._stack_long):
                     if self._countup >= timed_callback.time:
                         # fire callback
                         timed_callback.callback(self._num)
@@ -205,20 +206,22 @@ class GPIOPin:
 
                 # remove fired callbacks
                 for i in to_pop:
-                    self._stack.pop(i)
+                    self._stack_long.pop(i)
 
                 # check if it is time to fire a pulsed event
                 sort: bool = False
-                for i, timed_callback in enumerate(self.on_pulsed_active):
+                for i, timed_callback in enumerate(self._stack_pulsed):
                     if self._countup >= timed_callback.time:
                         timed_callback.callback(self._num)
-                        timed_callback.time += timed_callback.interval
+                        # set time for next pulse by adding the original
+                        # interval to the time of the current pulse
+                        timed_callback.time += self._stack_pulsed[i].time
                         sort = True
                     else:
                         break
 
                 if sort:
-                    self.on_pulsed_active.sort(key=lambda x: x.time)
+                    self._stack_pulsed.sort(key=lambda x: x.time)
         else:
             # state is not the last accepted state
             # so decrease the count by DEBOUNCE_CHECK_INTERVAL
@@ -233,7 +236,8 @@ class GPIOPin:
                 # if the new state is active
                 if self._active:
                     # create a working copy
-                    self._stack = self.on_long_active.copy()
+                    self._stack_long = self.on_long_active.copy()
+                    self._stack_pulsed = self.on_pulsed_active.copy()
                     # and reset countup
                     self._countup = 0
 
@@ -356,8 +360,7 @@ class GPIODMonitor:
             logger.debug('registering new pin %s', pin)
             self._pins[pin] = GPIOPin(pin)
         self._pins[pin].on_pulsed_active.append(
-                TimedCallback(callback, int(seconds * 1000),
-                              int(seconds * 1000)))
+                TimedCallback(callback, int(seconds * 1000)))
         # sort callbacks by the time the button needs to be pressed
         self._pins[pin].on_pulsed_active.sort(key=lambda x: x.time)
 
