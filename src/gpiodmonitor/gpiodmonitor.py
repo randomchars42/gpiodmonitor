@@ -7,6 +7,7 @@ https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git
 """
 
 import contextlib
+import copy
 import dataclasses
 import logging
 import sys
@@ -215,7 +216,7 @@ class GPIOPin:
                         timed_callback.callback(self._num)
                         # set time for next pulse by adding the original
                         # interval to the time of the current pulse
-                        timed_callback.time += self._stack_pulsed[i].time
+                        timed_callback.time += self.on_pulsed_active[i].time
                         sort = True
                     else:
                         break
@@ -237,7 +238,7 @@ class GPIOPin:
                 if self._active:
                     # create a working copy
                     self._stack_long = self.on_long_active.copy()
-                    self._stack_pulsed = self.on_pulsed_active.copy()
+                    self._stack_pulsed = copy.deepcopy(self.on_pulsed_active)
                     # and reset countup
                     self._countup = 0
 
